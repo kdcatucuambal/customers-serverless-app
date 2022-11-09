@@ -1,0 +1,115 @@
+openapi: 3.0.0
+
+info:
+  title: Serverless Application Model - Customers API
+  description: A serverless API made with aws services and destined to register user pending/done activities
+  version: 0.0.1
+  termsOfService: http://swagger.io/terms/
+
+x-amazon-apigateway-request-validators:
+  #This is a global request validator that will be applied to all methods, validate body and parameters of the request
+  all:
+    validateRequestBody: true
+    validateRequestParameters: true
+  #Validate the request parameters
+  params-only:
+    validateRequestBody: false
+    validateRequestParameters: true
+
+paths:
+  /customers:
+    post:
+      summary: Creates a new customer.
+      x-amazon-apigateway-request-validator: "all"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                postalCode:
+                  type: integer
+                active:
+                  type: boolean
+                index:
+                  type: integer
+              required:
+                - id
+                - name
+                - lastName
+                - email
+                - postalCode
+                - active
+                - index
+      responses:
+        "201":
+          description: Customer created!.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerModel"
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: "POST"
+        uri: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path//2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:CreateCustomerFunction/invocations
+        credentials: arn:${AWS::Partition}:iam::${AWS::AccountId}:role/ApiGatewayDefaultRole
+        passthroughBehaviour: "when_no_match"
+        # payloadFormatVersion: 2.0
+  /customers/{id}:
+    get:
+      summary: Returns the To Do with the specified id.
+      x-amazon-apigateway-request-validator: "params-only"
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Customer record.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerModel"
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: "POST"
+        uri: 
+          arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path//2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:GetCustomerByIdFunction/invocations
+        credentials: 
+          arn:${AWS::Partition}:iam::${AWS::AccountId}:role/ApiGatewayDefaultRole
+        passthroughBehaviour: "when_no_match"
+        # payloadFormatVersion: 2.0
+
+        responses:
+          default:
+            statusCode: "200"
+components:
+  schemas:
+    CustomerModel:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        postalCode:
+          type: integer
+        active:
+          type: boolean
+        index:
+          type: integer

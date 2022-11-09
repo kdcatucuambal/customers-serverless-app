@@ -8,26 +8,61 @@ Description: >
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
-    Timeout: 3
+    CodeUri: app
+    Timeout: 10
     Tracing: Active
+    Runtime: nodejs16.x
+    Architectures:
+      - x86_64
   Api:
     TracingEnabled: True
 
 Resources:
-  HelloWorldFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+  ApiGatewayDefaultRole:
+    Type: AWS::IAM::Role
     Properties:
-      CodeUri: hello-world/
-      Handler: app.lambdaHandler
-      Runtime: nodejs16.x
-      Architectures:
-        - x86_64
+      RoleName: ApiGatewayDefaultRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: ExecuteLambdaPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 'lambda:InvokeFunction'
+                Resource: 
+                  Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:*"
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Dev
+      EndpointConfiguration:
+        Type: REGIONAL # Only will be in one region
+      DefinitionBody: 
+        'Fn::Transform':
+          Name: 'AWS::Include'
+          Parameters:
+            Location: './specs/customers_api.yaml'                
+  CreateCustomerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/customers/create.createHandler
+      FunctionName: CreateCustomerFunction
       Events:
-        HelloWorld:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+        CreateCustomer:
+          Type: Api
           Properties:
-            Path: /hello
-            Method: get
+            Path: /customers
+            Method: post
+            RestApiId: !Ref ApiGateway
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:
@@ -35,18 +70,48 @@ Resources:
         Target: "es2020"
         # Sourcemap: true # Enabling source maps will create the required NODE_OPTIONS environment variables on your lambda function during sam build
         EntryPoints: 
-        - app.ts
-
+        - src/customers/create.ts
+  GetCustomerByIdFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/customers/getById.getByIdHandler
+      FunctionName: GetCustomerByIdFunction
+      Events:
+        CreateCustomer:
+          Type: Api
+          Properties:
+            Path: /customers/{id}
+            Method: get
+            RestApiId: !Ref ApiGateway
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        # Sourcemap: true # Enabling source maps will create the required NODE_OPTIONS environment variables on your lambda function during sam build
+        EntryPoints: 
+        - src/customers/getById.ts
+    
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  HelloWorldApi:
-    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
-  HelloWorldFunction:
-    Description: "Hello World Lambda Function ARN"
-    Value: !GetAtt HelloWorldFunction.Arn
-  HelloWorldFunctionIamRole:
-    Description: "Implicit IAM Role created for Hello World function"
-    Value: !GetAtt HelloWorldFunctionRole.Arn
+  CreateCustomerApi:
+    Description: "API Gateway endpoint URL for Prod stage for Create Customer function"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${ApiGateway.Stage}/customers/"
+  CreateCustomerFunction:
+    Description: "Create Customer Lambda Function ARN"
+    Value: !GetAtt CreateCustomerFunction.Arn
+  CreateCustomerFunctionIamRole:
+    Description: "Implicit IAM Role created for Create Customer function"
+    Value: !GetAtt CreateCustomerFunctionRole.Arn
+
+  GetCustomerByIdApi:
+    Description: "API Gateway endpoint URL for Prod stage for get customer by id"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${ApiGateway.Stage}/customers/"
+  GetCustomerByIdFunction:
+    Description: "Get Customer Lambda Function ARN"
+    Value: !GetAtt GetCustomerByIdFunction.Arn
+  GetCustomerByIdFunctionIamRole:
+    Description: "Implicit IAM Role created for Get Customer function"
+    Value: !GetAtt GetCustomerByIdFunctionRole.Arn
