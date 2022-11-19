@@ -39,7 +39,8 @@ Resources:
               - Effect: Allow
                 Action: 'lambda:InvokeFunction'
                 Resource: 
-                  Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:*"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${CreateCustomerFunction}"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${GetCustomerByIdFunction}"
   ApiGateway:
     Type: AWS::Serverless::Api
     Properties:
@@ -50,7 +51,8 @@ Resources:
         'Fn::Transform':
           Name: 'AWS::Include'
           Parameters:
-            Location: './specs/customers_api.yaml'                
+            Location: './specs/customers_api.yaml'        
+                    
   CreateCustomerFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -71,6 +73,7 @@ Resources:
         # Sourcemap: true # Enabling source maps will create the required NODE_OPTIONS environment variables on your lambda function during sam build
         EntryPoints: 
         - src/customers/create.ts
+  
   GetCustomerByIdFunction:
     Type: AWS::Serverless::Function
     Properties:

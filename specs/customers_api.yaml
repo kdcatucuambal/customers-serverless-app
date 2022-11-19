@@ -58,7 +58,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/CustomerModel"
       x-amazon-apigateway-integration:
-        type: aws_proxy
+        type: aws_proxy # Valid values are "aws", "aws_proxy", "http" or "http_proxy"
         httpMethod: "POST"
         uri: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path//2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:CreateCustomerFunction/invocations
         credentials: arn:${AWS::Partition}:iam::${AWS::AccountId}:role/ApiGatewayDefaultRole
@@ -82,7 +82,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/CustomerModel"
       x-amazon-apigateway-integration:
-        type: aws_proxy
+        type: aws_proxy # Valid values are "aws", "aws_proxy", "http" or "http_proxy"
         httpMethod: "POST"
         uri: 
           arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path//2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:GetCustomerByIdFunction/invocations
